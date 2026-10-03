@@ -1,10 +1,9 @@
 name: Auto Reading Bot
 
 on:
-  # 定时触发 - Fork 后如需自动定时运行，请取消下方 schedule 注释
-  # schedule:
-  #   - cron: '0 0 * * *'    # UTC 00:00 = 北京时间 08:00
-  #   - cron: '0 12 * * *'   # UTC 12:00 = 北京时间 20:00
+  # 定时触发：每天一次
+  schedule:
+    - cron: '17 0 * * *'   # UTC 00:17 = 北京时间 08:17
   
   # 拉取请求触发，用于测试阅读
   pull_request:
@@ -151,6 +150,19 @@ jobs:
     - name: Create logs directory
       run: mkdir -p logs
 
+    # Reminder 推送：通过 Apprise 自定义插件 (reminder://<key>) 接入，无需修改 weread-bot.py。
+    # apprise.Apprise() 的 Python API 默认不扫描插件目录，因此用 sitecustomize 在解释器启动时加载。
+    - name: Install Reminder notification plugin (Apprise)
+      run: |
+        plugin_dir="$HOME/.config/apprise/plugins"
+        hook_dir="$RUNNER_TEMP/pyhooks"
+        mkdir -p "$plugin_dir" "$hook_dir"
+        cp .github/apprise-plugins/reminder.py "$plugin_dir/reminder.py"
+        cp .github/apprise-plugins/sitecustomize.py "$hook_dir/sitecustomize.py"
+        echo "APPRISE_PLUGIN_PATH=$plugin_dir" >> "$GITHUB_ENV"
+        echo "PYTHONPATH=$hook_dir" >> "$GITHUB_ENV"
+        APPRISE_PLUGIN_PATH="$plugin_dir" PYTHONPATH="$hook_dir" python -c "import apprise; assert apprise.Apprise().add('reminder://selftest'), 'reminder plugin not registered'; print('Reminder Apprise plugin registered')"
+
     - name: Run WeRead Bot
       env:
         # Cookie刷新QL属性，根据不同用户的环境，可能需要设置为True或False来确保cookie刷新正常工作，默认值为false
@@ -166,7 +178,9 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         WXPUSHER_SPT: ${{ secrets.WXPUSHER_SPT }}
-        APPRISE_URL: ${{ secrets.APPRISE_URL }}
+        # 设置了 REMINDER_PUSH_KEY 时通过 Apprise 插件推送到 Reminder（复合通道），否则沿用 APPRISE_URL
+        APPRISE_URL: ${{ secrets.REMINDER_PUSH_KEY != '' && format('reminder://{0}', secrets.REMINDER_PUSH_KEY) || secrets.APPRISE_URL }}
+        REMINDER_CONFIGURED: ${{ secrets.REMINDER_PUSH_KEY != '' }}
         BARK_SERVER: ${{ secrets.BARK_SERVER }}
         BARK_DEVICE_KEY: ${{ secrets.BARK_DEVICE_KEY }}
         BARK_SOUND: ${{ secrets.BARK_SOUND }}
@@ -209,6 +223,7 @@ jobs:
         echo "- 仅失败通知: ${{ github.event.inputs.notify_only_on_failure == 'true' }}"
         echo "- 历史持久化: ${{ github.event.inputs.history_enabled != 'false' }}"
         echo "- 历史保留条数: ${{ github.event.inputs.history_max_entries || '50' }}"
+        echo "- Reminder 推送: ${REMINDER_CONFIGURED}"
         echo "================================"
         
         # 运行阅读机器人
