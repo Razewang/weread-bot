@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       target_duration:
-        description: '阅读时长（分钟，格式：10-20。留空时使用 1Password 条目 WEREAD_TARGET_DURATION，否则默认 1-2）'
+        description: '阅读时长（分钟，格式：10-20。留空时默认 45）'
         required: false
         default: ''
         type: string
@@ -68,7 +68,6 @@ jobs:
     # 1Password 引用使用 vault/item ID（vault 名称为中文，op:// 名称引用不可用）
     #   WEREAD_CURL_STRING -> 1Password 条目 "WEREAD_CURL_STRING"     字段 credential
     #   REMINDER_PUSH_KEY  -> 1Password 条目 "reminder推送密钥-复合"   字段 credential
-    #   TARGET_DURATION    -> 1Password 条目 "WEREAD_TARGET_DURATION" 字段 credential（分钟，如 45 或 40-50）
     - name: Load secrets from 1Password
       if: env.HAS_OP == 'true'
       uses: 1password/load-secrets-action@70062d7a876d3eb6334754fa26efd2fbd90c32f2 # v5.0.1
@@ -78,7 +77,6 @@ jobs:
         OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
         WEREAD_CURL_STRING: op://bijq6bcgreqllzb6dttxtra3sq/ra6734j5oqgl2tz6eznv3wkiay/credential
         REMINDER_PUSH_KEY: op://bijq6bcgreqllzb6dttxtra3sq/fcwwc726ujg7ef6s5z7zjwsjee/credential
-        TARGET_DURATION: op://bijq6bcgreqllzb6dttxtra3sq/fa63ihfjp3wnkwd6lkgtztqtam/credential
 
     - name: Check loaded values (no secret output)
       run: |
@@ -90,7 +88,6 @@ jobs:
           echo "::warning::WEREAD_CURL_STRING is empty (1Password not loaded?)"
         fi
         echo "REMINDER_PUSH_KEY: $([ -n "${REMINDER_PUSH_KEY}" ] && echo "loaded, length ${#REMINDER_PUSH_KEY}" || echo empty)"
-        echo "TARGET_DURATION (1Password): $([ -n "${TARGET_DURATION}" ] && echo loaded || echo empty)"
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -108,22 +105,17 @@ jobs:
         # 设置了 REMINDER_PUSH_KEY（1Password）时通过 Apprise 插件推送到 Reminder（复合通道），否则沿用 APPRISE_URL Secret
         SECRET_APPRISE_URL: ${{ secrets.APPRISE_URL }}
       run: |
-        # 阅读时长优先级：手动输入 > 1Password（已由上一步导出为 TARGET_DURATION）> 默认 1-2
+        # 阅读时长（分钟）：手动输入优先，否则使用下方默认值（定时任务即用此值，可写 45 或 40-50）
+        DEFAULT_TARGET_DURATION="45"
         target_duration="${INPUT_TARGET_DURATION}"
         source="workflow_dispatch input"
 
         if [ -z "$target_duration" ]; then
-          target_duration="${TARGET_DURATION}"
-          source="1Password WEREAD_TARGET_DURATION"
-        fi
-
-        if [ -z "$target_duration" ]; then
-          target_duration="1-2"
-          source="default"
+          target_duration="${DEFAULT_TARGET_DURATION}"
+          source="workflow default"
         fi
 
         echo "TARGET_DURATION=$target_duration" >> "$GITHUB_ENV"
-        # 注意：1Password 加载的值会被 Actions 日志遮蔽为 ***
         echo "Resolved TARGET_DURATION=${target_duration} (source: ${source})"
 
         if [ -n "${REMINDER_PUSH_KEY}" ]; then
