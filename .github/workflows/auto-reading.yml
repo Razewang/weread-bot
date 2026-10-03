@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
     inputs:
       target_duration:
-        description: '阅读时长（分钟，格式：10-20。留空时优先使用仓库 Secret TARGET_DURATION，否则默认 1-2）'
+        description: '阅读时长（分钟，格式：10-20。留空时使用 1Password 条目 WEREAD_TARGET_DURATION，否则默认 1-2）'
         required: false
         default: ''
         type: string
@@ -56,10 +56,41 @@ jobs:
   auto-reading:
     runs-on: ubuntu-latest
     timeout-minutes: 120  # 2小时超时
-    
+    env:
+      # 仓库只保存一个 Secret：OP_SERVICE_ACCOUNT_TOKEN；其余配置每次运行时从 1Password 实时读取
+      # （来自 fork 的 pull_request 拿不到 Secret，此时跳过 1Password 加载）
+      HAS_OP: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN != '' }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    # 1Password 引用使用 vault/item ID（vault 名称为中文，op:// 名称引用不可用）
+    #   WEREAD_CURL_STRING -> 1Password 条目 "WEREAD_CURL_STRING"     字段 credential
+    #   REMINDER_PUSH_KEY  -> 1Password 条目 "reminder推送密钥-复合"   字段 credential
+    #   TARGET_DURATION    -> 1Password 条目 "WEREAD_TARGET_DURATION" 字段 credential（分钟，如 45 或 40-50）
+    - name: Load secrets from 1Password
+      if: env.HAS_OP == 'true'
+      uses: 1password/load-secrets-action@70062d7a876d3eb6334754fa26efd2fbd90c32f2 # v5.0.1
+      with:
+        export-env: true
+      env:
+        OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+        WEREAD_CURL_STRING: op://bijq6bcgreqllzb6dttxtra3sq/ra6734j5oqgl2tz6eznv3wkiay/credential
+        REMINDER_PUSH_KEY: op://bijq6bcgreqllzb6dttxtra3sq/fcwwc726ujg7ef6s5z7zjwsjee/credential
+        TARGET_DURATION: op://bijq6bcgreqllzb6dttxtra3sq/fa63ihfjp3wnkwd6lkgtztqtam/credential
+
+    - name: Check loaded values (no secret output)
+      run: |
+        if [ -n "${WEREAD_CURL_STRING}" ]; then
+          lines=$(printf '%s\n' "${WEREAD_CURL_STRING}" | wc -l)
+          case "${WEREAD_CURL_STRING}" in curl*) starts=yes ;; *) starts=no ;; esac
+          echo "WEREAD_CURL_STRING: loaded, ${lines} lines, starts with curl: ${starts}"
+        else
+          echo "::warning::WEREAD_CURL_STRING is empty (1Password not loaded?)"
+        fi
+        echo "REMINDER_PUSH_KEY: $([ -n "${REMINDER_PUSH_KEY}" ] && echo "loaded, length ${#REMINDER_PUSH_KEY}" || echo empty)"
+        echo "TARGET_DURATION (1Password): $([ -n "${TARGET_DURATION}" ] && echo loaded || echo empty)"
 
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
@@ -74,19 +105,39 @@ jobs:
     - name: Resolve runtime parameters
       env:
         INPUT_TARGET_DURATION: ${{ github.event.inputs.target_duration }}
-        SECRET_TARGET_DURATION: ${{ secrets.TARGET_DURATION }}
+        # 设置了 REMINDER_PUSH_KEY（1Password）时通过 Apprise 插件推送到 Reminder（复合通道），否则沿用 APPRISE_URL Secret
+        SECRET_APPRISE_URL: ${{ secrets.APPRISE_URL }}
       run: |
+        # 阅读时长优先级：手动输入 > 1Password（已由上一步导出为 TARGET_DURATION）> 默认 1-2
         target_duration="${INPUT_TARGET_DURATION}"
+        source="workflow_dispatch input"
 
         if [ -z "$target_duration" ]; then
-          target_duration="${SECRET_TARGET_DURATION}"
+          target_duration="${TARGET_DURATION}"
+          source="1Password WEREAD_TARGET_DURATION"
         fi
 
         if [ -z "$target_duration" ]; then
           target_duration="1-2"
+          source="default"
         fi
 
         echo "TARGET_DURATION=$target_duration" >> "$GITHUB_ENV"
+        # 注意：1Password 加载的值会被 Actions 日志遮蔽为 ***
+        echo "Resolved TARGET_DURATION=${target_duration} (source: ${source})"
+
+        if [ -n "${REMINDER_PUSH_KEY}" ]; then
+          apprise_url="reminder://${REMINDER_PUSH_KEY}"
+          reminder_configured=true
+        else
+          apprise_url="${SECRET_APPRISE_URL}"
+          reminder_configured=false
+        fi
+        if [ -n "$apprise_url" ]; then
+          echo "::add-mask::${apprise_url}"
+          echo "APPRISE_URL=${apprise_url}" >> "$GITHUB_ENV"
+        fi
+        echo "REMINDER_CONFIGURED=${reminder_configured}" >> "$GITHUB_ENV"
 
     - name: Create config file
       run: |
@@ -167,8 +218,7 @@ jobs:
       env:
         # Cookie刷新QL属性，根据不同用户的环境，可能需要设置为True或False来确保cookie刷新正常工作，默认值为false
         HACK_COOKIE_REFRESH_QL: ${{ secrets.HACK_COOKIE_REFRESH_QL }}
-        # 多用户 cURL：在 WEREAD_CURL_STRING 中放置多段 curl，段与段之间至少插入两个空行
-        WEREAD_CURL_STRING: ${{ secrets.WEREAD_CURL_STRING }}
+        # WEREAD_CURL_STRING 由 1Password 加载步骤导出到 GITHUB_ENV（多用户：多段 curl 之间至少两个空行）
         # 多用户并发控制，未设置默认 1（顺序执行）
         MAX_CONCURRENT_USERS: ${{ secrets.MAX_CONCURRENT_USERS || 1 }}
         # 单用户连续阅读失败上限，未设置时默认 5
@@ -178,9 +228,7 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         WXPUSHER_SPT: ${{ secrets.WXPUSHER_SPT }}
-        # 设置了 REMINDER_PUSH_KEY 时通过 Apprise 插件推送到 Reminder（复合通道），否则沿用 APPRISE_URL
-        APPRISE_URL: ${{ secrets.REMINDER_PUSH_KEY != '' && format('reminder://{0}', secrets.REMINDER_PUSH_KEY) || secrets.APPRISE_URL }}
-        REMINDER_CONFIGURED: ${{ secrets.REMINDER_PUSH_KEY != '' }}
+        # APPRISE_URL / REMINDER_CONFIGURED 由 "Resolve runtime parameters" 步骤写入 GITHUB_ENV
         BARK_SERVER: ${{ secrets.BARK_SERVER }}
         BARK_DEVICE_KEY: ${{ secrets.BARK_DEVICE_KEY }}
         BARK_SOUND: ${{ secrets.BARK_SOUND }}
