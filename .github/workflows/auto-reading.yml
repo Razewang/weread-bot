@@ -172,7 +172,7 @@ jobs:
           only_on_failure: ${{ github.event.inputs.notify_only_on_failure == 'true' }}
           triggers:
             session_success: ${{ github.event.inputs.notify_only_on_failure != 'true' }}
-            multi_user_summary: ${{ github.event.inputs.notify_only_on_failure != 'true' }}
+            multi_user_summary: false
             session_failure: true
             runtime_error: true
             general: true
@@ -238,6 +238,19 @@ jobs:
         echo "APPRISE_PLUGIN_PATH=$plugin_dir" >> "$GITHUB_ENV"
         echo "PYTHONPATH=$hook_dir" >> "$GITHUB_ENV"
         APPRISE_PLUGIN_PATH="$plugin_dir" PYTHONPATH="$hook_dir" python -c "import apprise; assert apprise.Apprise().add('reminder://selftest'), 'reminder plugin not registered'; print('Reminder Apprise plugin registered')"
+
+    # 阅读开始时先推一条 Reminder 复合通知（仅当 REMINDER_PUSH_KEY 已从 1Password 加载）
+    - name: Notify Reminder reading started
+      run: |
+        if [ -z "${REMINDER_PUSH_KEY}" ]; then
+          echo "REMINDER_PUSH_KEY not set; skip start push"
+          exit 0
+        fi
+        curl -fsS -X POST "https://reminderapi.joyslinktech.com/v1/push/complex" \
+          -H "Content-Type: application/json; charset=utf-8" \
+          -d "{\"key\":\"${REMINDER_PUSH_KEY}\",\"data\":{\"title\":\"微信读书\",\"description\":\"今日自动阅读已开始\",\"short\":\"开始阅读\",\"tags\":[\"weread\",\"start\"]}}" \
+          -o /dev/null
+        echo "Start push succeeded"
 
     - name: Run WeRead Bot
       env:
