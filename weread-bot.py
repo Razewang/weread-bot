@@ -1660,8 +1660,38 @@ class CurlParser:
         return ""
 
     @staticmethod
+    def _parse_loose_object_payload(raw_payload: str) -> Dict[str, Any]:
+        """解析无引号 key 的对象载荷（部分抓包工具会产出 {a:b,c:1} 而非严格 JSON）。"""
+        payload = raw_payload.strip()
+        if not (payload.startswith("{") and payload.endswith("}")):
+            return {}
+        inner = payload[1:-1].strip()
+        if not inner:
+            return {}
+
+        request_data: Dict[str, Any] = {}
+        for match in re.finditer(r"([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([^,]*)", inner):
+            key = match.group(1)
+            value = match.group(2).strip()
+            if not value:
+                request_data[key] = value
+                continue
+            if (value.startswith('"') and value.endswith('"')) or (
+                value.startswith("'") and value.endswith("'")
+            ):
+                request_data[key] = value[1:-1]
+                continue
+            if re.fullmatch(r"-?\d+", value):
+                request_data[key] = int(value)
+                continue
+            if re.fullmatch(r"-?\d+\.\d+", value):
+                request_data[key] = float(value)
+                continue
+            request_data[key] = value
+        return request_data
+
     def _extract_request_data(curl_command: str) -> Dict[str, Any]:
-        """提取请求数据，兼容单引号和双引号"""
+        """提取请求数据，兼容单引号、双引号，以及无引号 key 的对象载荷"""
         patterns = [
             r"--data-raw\s+'([^']*)'",
             r'--data-raw\s+"([^"]*)"',
@@ -1680,14 +1710,20 @@ class CurlParser:
 
             try:
                 request_data = json.loads(raw_payload)
-                logging.debug(
-                    "从 CURL 提取请求字段: %s",
-                    ", ".join(sorted(request_data.keys())),
-                )
-                return request_data
             except json.JSONDecodeError as e:
-                logging.warning(f"⚠️ 解析请求数据JSON失败: {e}")
-                return {}
+                request_data = CurlParser._parse_loose_object_payload(raw_payload)
+                if not request_data:
+                    logging.warning(f"⚠️ 解析请求数据JSON失败: {e}")
+                    return {}
+                logging.info(
+                    "ℹ️ CURL 请求数据非严格 JSON，已按宽松对象格式解析"
+                )
+
+            logging.debug(
+                "从 CURL 提取请求字段: %s",
+                ", ".join(sorted(request_data.keys())),
+            )
+            return request_data
 
         return {}
 
@@ -1700,6 +1736,19 @@ class CurlParser:
         支持 -H 'Cookie: xxx' 和 -b 'xxx' 两种方式的cookie提取
         支持 --data-raw 'json' 方式的请求数据提取
         """
+        # 兼容把整段 curl 再包一层引号后写入 Secret/1Password 的情况
+        stripped = curl_command.strip()
+        if len(stripped) >= 2 and stripped[0] == stripped[-1] and stripped[0] in "'\"":
+            try:
+                import ast
+                unwrapped = ast.literal_eval(stripped)
+                if isinstance(unwrapped, str) and "curl" in unwrapped.lower():
+                    curl_command = unwrapped
+            except Exception:
+                inner = stripped[1:-1]
+                if "curl" in inner.lower():
+                    curl_command = inner
+
         headers_temp = {}
 
         # 提取 headers

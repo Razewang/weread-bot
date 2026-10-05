@@ -1,0 +1,124 @@
+# Auto-generated chapter list for 《中国通史（上下册）》吕思勉
+# numeric bookId=32441579, web book_id=fc032fe071ef04ebfc0efd1
+# chapter_id = WeRead URL-id encoding of chapterUid; chapter_index = chapterIdx
+# total chapters: 58
+books:
+  - name: "中国通史（上下册）"
+    book_id: "fc032fe071ef04ebfc0efd1"
+    chapters:
+      - chapter_id: "c4c329b011c4ca4238a0201"  # 封面
+        chapter_index: 1
+      - chapter_id: "c81322c012c81e728d9d180"  # 版权信息
+        chapter_index: 2
+      - chapter_id: "ecc32f3013eccbc87e4b62e"  # 自序
+        chapter_index: 3
+      - chapter_id: "a87322c014a87ff679a21ea"  # 绪论
+        chapter_index: 4
+      - chapter_id: "e4d32d5015e4da3b7fbb1fa"  # 上编 中国文化史
+        chapter_index: 5
+      - chapter_id: "16732dc0161679091c5aeb1"  # 第二章 族制
+        chapter_index: 6
+      - chapter_id: "8f132430178f14e45fce0f7"  # 第三章 政体
+        chapter_index: 7
+      - chapter_id: "c9f326d018c9f0f895fb5e4"  # 第四章 阶级
+        chapter_index: 8
+      - chapter_id: "45c322601945c48cce2e120"  # 第五章 财产
+        chapter_index: 9
+      - chapter_id: "d3d322001ad3d9446802347"  # 第六章 官制
+        chapter_index: 10
+      - chapter_id: "65132ca01b6512bd43d90e3"  # 第七章 选举
+        chapter_index: 11
+      - chapter_id: "c20321001cc20ad4d76f5ae"  # 第八章 赋税
+        chapter_index: 12
+      - chapter_id: "c51323901dc51ce410c121b"  # 第九章 兵制
+        chapter_index: 13
+      - chapter_id: "aab325601eaab3238922e53"  # 第十章 刑法
+        chapter_index: 14
+      - chapter_id: "9bf32f301f9bf31c7ff0a60"  # 第十一章 实业
+        chapter_index: 15
+      - chapter_id: "c7432af0210c74d97b01b1c"  # 第十二章 货币
+        chapter_index: 16
+      - chapter_id: "70e32fb021170efdf2eca12"  # 第十三章 衣食
+        chapter_index: 17
+      - chapter_id: "6f4322302126f4922f45dec"  # 第十四章 住行
+        chapter_index: 18
+      - chapter_id: "1f032c402131f0e3dad99f3"  # 第十五章 教育
+        chapter_index: 19
+      - chapter_id: "98f3284021498f137082c2e"  # 第十六章 语文
+        chapter_index: 20
+      - chapter_id: "3c5327902153c59dc0488e1"  # 第十七章 学术
+        chapter_index: 21
+      - chapter_id: "b6d32b90216b6d767d2f0dc"  # 第十八章 宗教
+        chapter_index: 22
+      - chapter_id: "37632cd021737693cfc7149"  # 下编 中国政治史
+        chapter_index: 23
+      - chapter_id: "1ff325f02181ff1de7742fc"  # 第二十章 中国史的年代
+        chapter_index: 24
+      - chapter_id: "8e232ec02198e296a067180"  # 第二十一章 古代的开化
+        chapter_index: 25
+      - chapter_id: "4e73277021a4e732ced3b55"  # 第二十二章 夏殷西周的事迹
+        chapter_index: 26
+      - chapter_id: "02e32f0021b02e74f10ece8"  # 第二十三章 春秋战国的竞争和秦国的统一
+        chapter_index: 27
+      - chapter_id: "33e3289021c33e75ff09694"  # 第二十四章 古代对于异族的同化
+        chapter_index: 28
+      - chapter_id: "6ea321b021d6ea9ab1ba605"  # 第二十五章 古代社会的综述
+        chapter_index: 29
+      - chapter_id: "341323f021e34173cb3824c"  # 第二十六章 秦朝治天下的政策
+        chapter_index: 30
+      - chapter_id: "c1632f5021fc16a5320f3dc"  # 第二十七章 秦汉间封建政体的反动
+        chapter_index: 31
+      - chapter_id: "636320102206364d3f0ffdc"  # 第二十八章 汉武帝的内政外交
+        chapter_index: 32
+      - chapter_id: "182326e0221182be0c5ca23"  # 第二十九章 前汉的衰亡
+        chapter_index: 33
+      - chapter_id: "e3632bd0222e369853df322"  # 第三十章 新室的兴亡
+        chapter_index: 34
+      - chapter_id: "1c3321802231c383cd30bb3"  # 第三十一章 后汉的盛衰
+        chapter_index: 35
+      - chapter_id: "19c3222022419ca14e7eef7"  # 第三十二章 后汉的分裂和三国
+        chapter_index: 36
+      - chapter_id: "a5b325d0225a5bfc9e0772d"  # 第三十三章 晋初的形势
+        chapter_index: 37
+      - chapter_id: "a5732aa0226a5771bce9dc4"  # 第三十四章 五胡之乱（上）
+        chapter_index: 38
+      - chapter_id: "d67323c0227d67d8ab4fb04"  # 第三十五章 五胡之乱（下）
+        chapter_index: 39
+      - chapter_id: "d6432e00228d645920e3401"  # 第三十六章 南北朝的始末
+        chapter_index: 40
+      - chapter_id: "34132fc02293416a75f431d"  # 第三十七章 南北朝隋唐间塞外的形势
+        chapter_index: 41
+      - chapter_id: "a1d32a6022aa1d0c6e83eb4"  # 第三十八章 隋朝和唐朝的盛世
+        chapter_index: 42
+      - chapter_id: "17e328b022b17e62166fad4"  # 第三十九章 唐朝的中衰
+        chapter_index: 43
+      - chapter_id: "f7132c6022cf7177163c01c"  # 第四十章 唐朝的衰亡和沙陀的侵入
+        chapter_index: 44
+      - chapter_id: "6c8328f022d6c8349cc72d5"  # 第四十一章 五代十国的兴亡和契丹的侵入
+        chapter_index: 45
+      - chapter_id: "d9d320f022ed9d4f495e456"  # 第四十二章 唐宋时代中国文化的转变
+        chapter_index: 46
+      - chapter_id: "67c32d7022f67c6a1e7ce82"  # 第四十三章 北宋的积弱
+        chapter_index: 47
+      - chapter_id: "64232b60230642e92efb54c"  # 第四十四章 南宋恢复的无成
+        chapter_index: 48
+      - chapter_id: "f4532c00231f457c545ad3c"  # 第四十五章 蒙古大帝国的盛衰
+        chapter_index: 49
+      - chapter_id: "c0c320a0232c0c7c76d365a"  # 第四十六章 汉族的光复事业
+        chapter_index: 50
+      - chapter_id: "283328802332838023a7529"  # 第四十七章 明朝的盛衰
+        chapter_index: 51
+      - chapter_id: "9a132c802349a1158154a83"  # 第四十八章 明清的兴亡
+        chapter_index: 52
+      - chapter_id: "d8232f00235d82c8d161fb2"  # 第四十九章 清代的盛衰
+        chapter_index: 53
+      - chapter_id: "a6832360236a684eceeee20"  # 第五十章 中西初期的交涉
+        chapter_index: 54
+      - chapter_id: "b5332110237b53b3a3d68d2"  # 第五十一章 汉族的光复运动
+        chapter_index: 55
+      - chapter_id: "9f6326602389f61408e3715"  # 第五十二章 清朝的衰乱
+        chapter_index: 56
+      - chapter_id: "72b327f023972b32a1f7e2d"  # 第五十三章 清朝的覆亡
+        chapter_index: 57
+      - chapter_id: "66f3299023a66f041e16858"  # 第五十四章 革命途中的中国
+        chapter_index: 58

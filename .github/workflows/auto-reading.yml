@@ -133,6 +133,8 @@ jobs:
 
     - name: Create config file
       run: |
+        # 书籍清单独立维护于 .github/books/，避免章节列表撑爆 workflow YAML。
+        # use_curl_data_first=false：仍用 CURL 提取 cookies/headers/身份字段，但阅读书籍/章节以配置为准。
         cat > config.yaml <<EOF
         app:
           name: "WeReadBot-GitHub-Action"
@@ -144,7 +146,7 @@ jobs:
           # 目标阅读时长（分钟），支持区间随机，格式如："1" 或 "1-2"
           target_duration: "${TARGET_DURATION}"
           reading_interval: "30-48"
-          use_curl_data_first: true
+          use_curl_data_first: false
           fallback_to_config: true
           smart_random:
             book_continuity: 0.8
@@ -189,6 +191,37 @@ jobs:
           max_entries: ${{ github.event.inputs.history_max_entries || '50' }}
           persist_runtime_error: true
         EOF
+
+        # 追加 books: 列表（《中国通史（上下册）》吕思勉，58 章）
+        python3 - <<'PY'
+        from pathlib import Path
+        books = Path(".github/books/zhongguotongshi.yaml").read_text(encoding="utf-8")
+        # 文件顶层是 books:，需要缩进进 reading: 下（两空格）
+        indented = []
+        for line in books.splitlines():
+            if not line.strip() or line.lstrip().startswith("#"):
+                # 保留注释，缩进到 reading 层级旁白即可
+                indented.append("  " + line if line.strip() else line)
+                continue
+            indented.append("  " + line)
+        cfg = Path("config.yaml")
+        text = cfg.read_text(encoding="utf-8")
+        if "human_simulation:" not in text:
+            raise SystemExit("config.yaml missing human_simulation section")
+        # 在 reading 段内、human_simulation 前插入 books
+        parts = text.split("human_simulation:", 1)
+        books_block = "\n".join(indented).rstrip() + "\n\n"
+        cfg.write_text(parts[0] + books_block + "human_simulation:" + parts[1], encoding="utf-8")
+        # 校验
+        import yaml
+        data = yaml.safe_load(cfg.read_text(encoding="utf-8"))
+        books_cfg = data["reading"]["books"]
+        assert data["reading"]["use_curl_data_first"] is False
+        assert data["reading"]["fallback_to_config"] is True
+        assert books_cfg[0]["book_id"] == "fc032fe071ef04ebfc0efd1"
+        assert len(books_cfg[0]["chapters"]) == 58
+        print(f"config.yaml ready: book={books_cfg[0]['name']}, chapters={len(books_cfg[0]['chapters'])}, use_curl_data_first={data['reading']['use_curl_data_first']}")
+        PY
 
     - name: Create logs directory
       run: mkdir -p logs
